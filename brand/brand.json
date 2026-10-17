@@ -1,0 +1,10 @@
+{
+  "primary": "#176B55",
+  "primaryDark": "#10483F",
+  "accent": "#E6A58D",
+  "star": "#F2B544",
+  "ink": "#172F2B",
+  "muted": "#65756F",
+  "surface": "#F5F8F3",
+  "notes": "Primary green supports white button text at WCAG AA. Use primaryDark for hover and dark surfaces, ink for headings, muted for secondary text on surface, coral accent for warmth, and amber star for ratings with ink labels. Surface is the light canvas and the mark's reversed detail. Illustrations use only palette colors, with transparent ink overlays for varied skin tones. Inline the mono SVG to inherit currentColor. Keep the full-color wordmark on a surface-colored plate over dark backgrounds. Reserve one head-width of clear space around the mark. Use favicon.svg at 16 to 32 px. Pair verification symbols with visible status text; never rely on color alone."
+}

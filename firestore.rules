@@ -1,0 +1,73 @@
+rules_version = '2';
+
+// Panelista: clients only READ, except chat messages. Every other write goes
+// through the Next.js API (Admin SDK) where it is validated and rate limited.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    // Email/password users must verify their email before writing anything.
+    function verified() { return signedIn() && request.auth.token.email_verified == true; }
+    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+
+    match /profiles/{uid} {
+      allow get: if true;
+      // Public lists must be paged: caps scraping and read-quota exhaustion.
+      allow list: if request.query.limit <= 50;
+    }
+
+    match /projects/{id} {
+      allow get: if true;
+      // Public lists must be paged: caps scraping and read-quota exhaustion.
+      allow list: if request.query.limit <= 50;
+    }
+
+    match /reviews/{id} {
+      allow get: if true;
+      // Public lists must be paged: caps scraping and read-quota exhaustion.
+      allow list: if request.query.limit <= 50;
+    }
+
+    match /requests/{rid} {
+      function participant() { return signedIn() && request.auth.uid in resource.data.participants; }
+
+      allow read: if participant() || isAdmin();
+
+      // Participants may only bump the inbox preview when they send a message.
+      allow update: if participant() && verified()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'lastSender'])
+        && request.resource.data.lastSender == request.auth.uid
+        && request.resource.data.lastMessageAt == request.time
+        && request.resource.data.lastMessage is string
+        && request.resource.data.lastMessage.size() <= 120
+        && resource.data.status in ['accepted', 'completed'];
+
+      match /messages/{mid} {
+        function parent() { return get(/databases/$(database)/documents/requests/$(rid)).data; }
+        function inThread() { return signedIn() && request.auth.uid in parent().participants; }
+
+        allow read: if inThread() || isAdmin();
+        allow create: if inThread() && verified()
+          && parent().status in ['accepted', 'completed']
+          && request.resource.data.keys().hasOnly(['senderUid', 'text', 'createdAt'])
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.createdAt == request.time;
+      }
+    }
+
+    match /verifications/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
+    }
+
+    match /reports/{id} {
+      allow read: if isAdmin();
+    }
+
+    // ratelimits and anything else: server only.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,135 @@
+import "server-only";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getAppCheck } from "firebase-admin/app-check";
+import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+
+// Local dev: with FIRESTORE_EMULATOR_HOST and FIREBASE_AUTH_EMULATOR_HOST set,
+// firebase-admin talks only to the emulators and needs no credentials.
+const EMULATED = !!process.env.FIRESTORE_EMULATOR_HOST;
+
+// Service account comes in as base64 JSON so it survives env var tooling.
+export function app() {
+  if (getApps().length) return getApps()[0];
+  if (EMULATED) return initializeApp({ projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID });
+  const sa = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64 ?? "", "base64").toString("utf8"));
+  return initializeApp({ credential: cert(sa), projectId: sa.project_id });
+}
+
+export const db = () => getFirestore(app());
+export const adminAuth = () => getAuth(app());
+export { FieldValue };
+
+export class HttpError extends Error {
+  constructor(public status: number, public code: string) {
+    super(code);
+  }
+}
+
+/** Verifies the Firebase ID token (including revocation and disabled users). */
+export async function requireUser(req: Request): Promise<DecodedIdToken> {
+  const h = req.headers.get("authorization") ?? "";
+  const token = h.startsWith("Bearer ") ? h.slice(7) : "";
+  if (!token) throw new HttpError(401, "no-token");
+  let user: DecodedIdToken;
+  try {
+    user = await adminAuth().verifyIdToken(token, true);
+  } catch {
+    throw new HttpError(401, "bad-token");
+  }
+  // Google accounts arrive verified; email/password accounts must click the link first.
+  if (user.email_verified !== true) throw new HttpError(403, "verify-email");
+  return user;
+}
+
+export async function requireAdmin(req: Request) {
+  const user = await requireUser(req);
+  if (user.admin !== true) throw new HttpError(403, "not-admin");
+  return user;
+}
+
+/** Same-origin check for state-changing requests (defense in depth with Bearer auth). */
+function checkOrigin(req: Request) {
+  const origin = req.headers.get("origin");
+  if (!origin) return;
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  let originHost = "";
+  try {
+    originHost = new URL(origin).host; // "null" origins throw here
+  } catch {}
+  if (originHost !== host) throw new HttpError(403, "bad-origin");
+}
+
+/** App Check token from our Turnstile-backed provider (see /api/appcheck). */
+async function checkAppCheck(req: Request) {
+  // Emulators have no App Check. Safe: with this env var set, the API can only reach emulator data.
+  if (EMULATED) return;
+  const token = req.headers.get("x-firebase-appcheck");
+  if (!token) throw new HttpError(401, "no-app-check");
+  try {
+    await getAppCheck(app()).verifyToken(token);
+  } catch {
+    throw new HttpError(401, "bad-app-check");
+  }
+}
+
+type Handler = (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<unknown>;
+
+/** Wraps a route handler: origin + App Check, JSON body errors, typed HTTP errors. */
+export function route(fn: Handler, opts: { appCheck?: boolean } = {}) {
+  return async (req: Request, ctx: { params: Promise<Record<string, string>> }) => {
+    try {
+      if (req.method !== "GET") checkOrigin(req);
+      if (opts.appCheck !== false) await checkAppCheck(req);
+      const data = await fn(req, ctx);
+      return NextResponse.json(data ?? { ok: true });
+    } catch (e) {
+      if (e instanceof HttpError) return NextResponse.json({ error: e.code }, { status: e.status });
+      if (e instanceof ZodError) return NextResponse.json({ error: "invalid", issues: e.issues.slice(0, 5) }, { status: 400 });
+      if (e instanceof SyntaxError) return NextResponse.json({ error: "bad-json" }, { status: 400 });
+      console.error(e);
+      return NextResponse.json({ error: "server" }, { status: 500 });
+    }
+  };
+}
+
+export async function body(req: Request) {
+  // Measure the actual body: chunked requests have no Content-Length.
+  const raw = await req.text();
+  if (raw.length > 20_000) throw new HttpError(413, "too-large");
+  return JSON.parse(raw);
+}
+
+/**
+ * A finished evaluation obliges the student to rate the evaluator: that rating
+ * is the trade for free help. Until they do, nothing that asks for more help
+ * (new project, invite, accepting an offer) goes through. Equality-only query,
+ * so Firestore serves it from single-field indexes.
+ */
+export async function requireNoPendingReview(uid: string) {
+  const due = await db()
+    .collection("requests")
+    .where("studentUid", "==", uid)
+    .where("status", "==", "completed")
+    .where("reviewedByStudent", "==", false)
+    .limit(1)
+    .get();
+  if (!due.empty) throw new HttpError(409, "review-pending");
+}
+
+/**
+ * Fixed-window daily limit per user and bucket, stored in Firestore.
+ * ponytail: one doc write per call; move to Upstash/Workers KV if write volume matters.
+ */
+export async function rateLimit(uid: string, bucket: string, perDay: number) {
+  const day = new Date().toISOString().slice(0, 10);
+  const ref = db().doc(`ratelimits/${uid}_${bucket}_${day}`);
+  await db().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const n = (snap.get("n") as number | undefined) ?? 0;
+    if (n >= perDay) throw new HttpError(429, "rate-limited");
+    tx.set(ref, { n: n + 1, expireAt: new Date(Date.now() + 2 * 864e5) }, { merge: true });
+  });
+}

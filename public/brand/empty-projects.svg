@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" role="img" aria-labelledby="title desc">
+  <title id="title">Your next project starts here</title>
+  <desc id="desc">An open project folder holds a blank system plan with an inviting plus sign.</desc>
+  <ellipse cx="103" cy="136" rx="72" ry="11" fill="#176B55" opacity="0.1"/>
+  <path d="M38 55q0-7 7-7h33l10 11h62q8 0 8 8v61H38Z" fill="#10483F"/>
+  <g transform="rotate(8 111 77)">
+    <path d="M76 26h53l18 18v65H76Z" fill="#F5F8F3" stroke="#65756F" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M129 26v18h18" fill="#E6A58D"/>
+    <rect x="89" y="44" width="25" height="5" rx="2" fill="#176B55"/>
+    <path d="M90 60h42M90 69h25" stroke="#65756F" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <path d="M29 81q-1-7 7-7h48l10 10h68q8 0 6 8l-8 39q-1 6-8 6H46q-7 0-8-7Z" fill="#176B55"/>
+  <path d="M43 83h34" stroke="#F5F8F3" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <circle cx="105" cy="108" r="17" fill="#F2B544"/>
+  <path d="M105 100v16m-8-8h16" stroke="#10483F" stroke-width="3" stroke-linecap="round"/>
+  <path d="m47 30 3 6 6 3-6 3-3 6-3-6-6-3 6-3Z" fill="#E6A58D"/>
+  <path d="m165 53 4-5m-13-18 1-6" stroke="#65756F" stroke-width="2" stroke-linecap="round"/>
+</svg>

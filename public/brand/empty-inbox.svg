@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" role="img" aria-labelledby="title desc">
+  <title id="title">Room for your first conversation</title>
+  <desc id="desc">An open green inbox waits below a warm, welcoming speech bubble.</desc>
+  <ellipse cx="101" cy="135" rx="70" ry="12" fill="#176B55" opacity="0.1"/>
+  <path d="M35 102 52 72h92l20 30v28H35Z" fill="#10483F"/>
+  <path d="m43 100 15-22h79l17 22Z" fill="#F5F8F3"/>
+  <path d="M35 102h43l7 12h29l8-12h42v28q0 7-7 7H42q-7 0-7-7Z" fill="#176B55"/>
+  <path d="M43 103h34m46 0h31" stroke="#F5F8F3" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M64 28h63q10 0 10 10v30q0 10-10 10h-24L86 91V78H64q-10 0-10-10V38q0-10 10-10Z" fill="#E6A58D"/>
+  <g fill="#10483F">
+    <circle cx="77" cy="53" r="4"/>
+    <circle cx="95" cy="53" r="4"/>
+    <circle cx="113" cy="53" r="4"/>
+  </g>
+  <path d="m154 36 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z" fill="#F2B544"/>
+  <path d="m37 48-5-4m114 37 8-3" stroke="#65756F" stroke-width="2" stroke-linecap="round"/>
+</svg>

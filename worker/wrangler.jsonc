@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "panelista-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+  "triggers": { "crons": ["17 * * * *"] },
+  // KV, not R2: R2 needs a card on file. KV is free, values up to 25 MiB, native TTL.
+  "kv_namespaces": [{ "binding": "PROOFS", "id": "be66d8fc8941429fb4e5b7e2f0a10f0b" }],
+  "ratelimits": [{ "name": "UPLOAD_LIMIT", "namespace_id": "4801", "simple": { "limit": 10, "period": 60 } }],
+  "vars": {
+    "FIREBASE_PROJECT_ID": "panelista-riecodes",
+    "FIREBASE_PROJECT_NUMBER": "580867277489",
+    "ALLOWED_ORIGINS": "https://panelista.vercel.app"
+  }
+  // Secrets (wrangler secret put): SA_CLIENT_EMAIL, SA_PRIVATE_KEY.
+  // Local dev: put ALLOWED_ORIGINS="http://localhost:3000" in worker/.dev.vars.
+}
