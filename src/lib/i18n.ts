@@ -201,6 +201,7 @@ export const STRINGS = {
     "This evaluation was arranged through Panelista, a free platform connecting capstone students with IT professionals.",
   ],
   certRef: ["Ref: {id}", "Ref: {id}"],
+  certNotYet: ["Lalabas ang certificate kapag tapos na ang evaluation.", "The certificate appears once the evaluation is completed."],
 
   welcomeTitle: ["Welcome sa Panelista!", "Welcome to Panelista!"],
   welcomeSub: ["I-setup ang profile mo. Pwede kang student at evaluator.", "Set up your profile. You can be both a student and an evaluator."],

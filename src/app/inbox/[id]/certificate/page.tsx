@@ -23,7 +23,15 @@ function Certificate({ id }: { id: string }) {
   }, [evaluatorUid]);
 
   if (r === undefined || (evaluatorUid && evaluator === undefined)) return <Spinner />;
-  if (r === null || r.status !== "completed") return <Empty img="empty-inbox" text={t("notFound")} />;
+  if (r === null) return <Empty img="empty-inbox" text={t("notFound")} />;
+  if (r.status !== "completed")
+    return (
+      <Empty img="empty-inbox" text={t("certNotYet")}>
+        <Link href={`/inbox/${id}`} className="text-sm text-brand underline">
+          {t("certBack")}
+        </Link>
+      </Empty>
+    );
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4 print:max-w-none">
@@ -54,7 +62,7 @@ function Certificate({ id }: { id: string }) {
           <p className="text-muted">{t("certEvaluatedBy")}</p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <p className="text-2xl font-bold">{evaluator?.name || r.evaluatorName}</p>
-            {evaluator?.verified && <VerifiedBadge />}
+            {evaluator?.verified && !evaluator.banned && <VerifiedBadge />}
           </div>
           {evaluator?.headline && <p className="text-muted">{evaluator.headline}</p>}
         </div>
